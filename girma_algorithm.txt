@@ -1,0 +1,63 @@
+Removing Prefix-Suffix Pair
+1. Get WORD 
+2. Count number of radicals of WORD (nw) 
+3. If nw <= 3 then stop and return WORD 
+4. If no PREFIX-SUFFIX pair then stop and return WORD 
+5. If PREFIX-SUFFIX pair match then
+       Count number of radicals of PREFIX-SUFFIX (nps) 
+       If (nw-nps) >= 3 then 
+           Remove PREFIX and copy substring to PWORD 
+           Remove SUFFIX from PWORD and copy substring to SWORD 
+           Copy SWORD to WORD 
+           Go to Step 2 
+       Else Go to Step 4 
+   Else Go to Step 4 
+
+Removing Double Reduplication
+1. Get WORD 
+2. Count number of radicals of WORD (n) 
+3. If n < 5 then stop and return WORD 
+4. Extract root of the WORD (CIC2C3 ... Cn) 
+5. If Ci=Ci+ 2 and Ci+ 1 =Ci+ 3 then 
+       Remove Ci and Ci+ 1 with their vowel and copy the remaining to DWORD 
+       Return DWORD 
+   Else return WORD
+
+Removing Prefix
+1. Get WORD 
+2. Count number of radicals of WORD (n) 
+3. If n <= 3 then stop and return WORD 
+4. If PLIST empty then stop and return WORD 
+5. If PREFIX does not match with WORD then Go to Step 4 
+   Count radicals of the prefix (np) 
+   If (n-np) >= 3 then 
+       Remove PREFIX and copy sub-string to PWORD 
+       Copy PWORD to WORD 
+       Go to Step 3 
+   Else 
+       Go to Step 4 
+
+Removing Suffix
+1. Get WORD 
+2. Count number of radicals of WORD (n) 
+3. If n <= 3 then stop and return WORD 
+4. If SLIST empty then stop and return WORD 
+5. If SUFFIX does not match with WORD then Go to Step 4 
+   Count number of radicals of SUFFIX (ns) 
+   If (n-ns) >=3 then 
+       Remove SUFFIX and copy sub-string to SWORD 
+       Copy SWORD to WORD
+       Go to Step 3
+   Else 
+       Go to Step 4 
+
+Removing Single Reduplication
+1. Get WORD 
+2. Count number of radicals of WORD (n) 
+3. If n < 4 then stop and return WORD 
+4. Extract root of the WORD (C1C2C3...Cn) 
+5. If Ci=Ci+ 1 then 
+       Remove Ci with following vowel and copy the remaining sub-string to DWORD 
+       Return DWORD 
+   Else 
+       Return WORD 

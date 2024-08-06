@@ -78,7 +78,7 @@ class TigMorphPreprocess:
         """
         Removes a predefined stopwords from the corpus.
         """
-        stopwords = load_txt_file("list_prep/stopword_list0.txt")
+        stopwords = load_txt_file("stopword_list0.txt")
 
         if word != "":
             for stopword in stopwords:

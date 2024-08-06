@@ -8,172 +8,170 @@ class TigrinyaStemmer:
     The corpus is assumed to have gone through morphological preprocessing.
     """
 
-    # REVIEW - dates should not get stemmed
     # NOTE - never use replace method to remove prefix and suffix of any kind!!
 
-    vowels = ["ኧ", "ኡ", "ኢ", "ኣ", "ኤ", "እ", "ኦ"]
+    # vowels = ["ኧ", "ኡ", "ኢ", "ኣ", "ኤ", "እ", "ኦ"]
+    vowels = ["e", "u", "i", "a", "E", "o"]
 
-    def __init__(self, prefix_list, infix_map, suffix_list, corpus=""):
-        self.prefix_list = sorted(prefix_list, key=len)
-        self.infix_map = infix_map
-        self.suffix_list = sorted(suffix_list, key=len)
-        self.corpus = corpus
+    def __init__(self, prefix_suffix_pairs, prefix_list, suffix_list):
+        self.prefix_suffix_pairs = prefix_suffix_pairs
+        self.prefix_list = prefix_list
+        self.suffix_list = suffix_list
 
-    def count_radicals(word):
-        """Count the number of radicals in a word."""
-        return sum([1 for char in word if char not in vowels])
+    def count_radicals(self, word=""):
+        """Count the number of radicals (consonants) in a word."""
+        return len(self.extract_root(word))
 
-    def extract_root(word):
-        """Extract the root of a word."""
-        # This is a placeholder. You'll need to implement based on Tigrinya morphology.
-        return word
+    def extract_root(self, word=""):
+        return "".join(
+            [char for char in word if char not in set(self.vowels).union({"'", "W"})]
+        )
 
-    def remove_prefix_suffix_pair(word, prefix_suffix_pairs):
-        nw = count_radicals(word)
-        if nw <= 3:
+    def remove_prefix_suffix_pair(self, word=""):
+        """
+        Prefix-suffix pairs are usually used to derive nouns from verbs.
+        """
+        stemmed_word = transliterate(word)
+        prefix_suffix_pairs = [
+            (transliterate(pair[0]), transliterate(pair[1]))
+            for pair in self.prefix_suffix_pairs
+        ]
+
+        i = 0
+        while self.count_radicals(stemmed_word) > 3 and i < len(prefix_suffix_pairs):
+            prefix = prefix_suffix_pairs[i][0]
+            suffix = prefix_suffix_pairs[i][1]
+            if (
+                stemmed_word.startswith(prefix)
+                and stemmed_word.endswith(suffix)
+                and self.count_radicals(word) - self.count_radicals(prefix + suffix)
+                >= 3
+            ):
+                prefix_removed = stemmed_word[len(prefix) :]
+                suffix_removed = prefix_removed[: -len(suffix)]
+                stemmed_word = suffix_removed
+            i += 1
+
+        return transcribe(stemmed_word)
+
+    def remove_double_reduplication(self, word=""):
+        if self.count_radicals(word) < 5:
             return word
 
-        for prefix, suffix in prefix_suffix_pairs:
-            if word.startswith(prefix) and word.endswith(suffix):
-                nps = count_radicals(prefix + suffix)
-                if nw - nps >= 3:
-                    pword = word[len(prefix) :]
-                    sword = pword[: -len(suffix)]
-                    return remove_prefix_suffix_pair(sword, prefix_suffix_pairs)
+        stemmed_word = word
+        for i in range(len(stemmed_word) - 3):
+            if stemmed_word[i : i + 2] == stemmed_word[i + 2 : i + 4]:
+                return stemmed_word[: i + 2] + stemmed_word[i + 4 :]
+        return stemmed_word
 
-        return word
+    def remove_prefix(self, word=""):
+        stemmed_word = transliterate(word)
 
-    def remove_double_reduplication(word):
-        n = count_radicals(word)
-        if n < 5:
+        prefix_list = [transliterate(prefix) for prefix in self.prefix_list]
+        i = 0
+        while self.count_radicals(stemmed_word) > 3 and i < len(prefix_list):
+            if stemmed_word.startswith(prefix_list[i]) and (
+                self.count_radicals(stemmed_word) - self.count_radicals(prefix_list[i])
+                >= 3
+            ):
+                stemmed_word = stemmed_word[len(prefix_list[i]) :]
+            i += 1
+
+        return transcribe(stemmed_word)
+
+    def remove_suffix(self, word=""):
+        stemmed_word = transliterate(word)
+
+        suffix_list = [transliterate(suffix) for suffix in self.suffix_list]
+        i = 0
+        while self.count_radicals(stemmed_word) > 3 and i < len(suffix_list):
+            if stemmed_word.endswith(suffix_list[i]) and (
+                self.count_radicals(stemmed_word) - self.count_radicals(suffix_list[i])
+                >= 3
+            ):
+                stemmed_word = stemmed_word[: -len(suffix_list[i])]
+            i += 1
+
+        return transcribe(stemmed_word)
+
+    def remove_single_reduplication(self, word=""):
+        if self.count_radicals(word) < 4:
             return word
 
-        root = extract_root(word)
-        for i in range(len(root) - 3):
-            if root[i] == root[i + 2] and root[i + 1] == root[i + 3]:
-                # Remove the reduplicated part. This is a simplified version.
-                return word[:i] + word[i + 2 :]
+        stemmed_word = word
+        for i in range(len(stemmed_word) - 1):
+            consonant1 = self.extract_root(transliterate(stemmed_word[i]))
+            consonant2 = self.extract_root(transliterate(stemmed_word[i + 1]))
+            if consonant1 == consonant2:
+                return stemmed_word[:i] + stemmed_word[i + 1 :]
 
-        return word
+        return stemmed_word
 
-    def remove_prefix(word, prefix_list):
-        while True:
-            n = count_radicals(word)
-            if n <= 3:
-                return word
-
-            for prefix in prefix_list:
-                if word.startswith(prefix):
-                    np = count_radicals(prefix)
-                    if n - np >= 3:
-                        word = word[len(prefix) :]
-                        break
-            else:
-                return word
-
-    def remove_suffix(word, suffix_list):
-        while True:
-            n = count_radicals(word)
-            if n <= 3:
-                return word
-
-            for suffix in suffix_list:
-                if word.endswith(suffix):
-                    ns = count_radicals(suffix)
-                    if n - ns >= 3:
-                        word = word[: -len(suffix)]
-                        break
-            else:
-                return word
-
-    def remove_single_reduplication(word):
-        n = count_radicals(word)
-        if n < 4:
-            return word
-
-        root = extract_root(word)
-        for i in range(len(root) - 1):
-            if root[i] == root[i + 1]:
-                # Remove the reduplicated part. This is a simplified version.
-                return word[:i] + word[i + 1 :]
-
-        return word
-
-    def stem_tigrinya(word, prefix_suffix_pairs, prefix_list, suffix_list):
-        word = remove_prefix_suffix_pair(word, prefix_suffix_pairs)
-        word = remove_double_reduplication(word)
-        word = remove_prefix(word, prefix_list)
-        word = remove_suffix(word, suffix_list)
-        word = remove_single_reduplication(word)
-        return word
-
-    def stem(self, word):
+    def stem(self, word=""):
         """
         For simplicity implementation is done assuming the method gets called passing a word.
         In practice, stem method should run on corpus.
-
-        Converts to abugida form before handling prefixes.
-        Converts back to original form before returning.
         """
 
-        # word0 = self.handle_infixes(word)
+        stemmed_word = word
 
-        # word1 = segment_fidel(word0)
+        stemmed_word0 = self.remove_prefix_suffix_pair(stemmed_word)
+        stemmed_word1 = self.remove_double_reduplication(stemmed_word0)
+        stemmed_word2 = self.remove_prefix(stemmed_word1)
+        stemmed_word3 = self.remove_suffix(stemmed_word2)
+        stemmed_word4 = self.remove_single_reduplication(stemmed_word3)
 
-        # word2 = self.handle_suffixes(word1)
-        # word3 = self.handle_prefixes(word2)
-
-        # return fuse_segments(word3)
-        pass
+        return stemmed_word4
 
 
-def load_files():
+def load_lists():
     # load prefix list
-    with open("girma_prefix_list.txt", "r", encoding="utf-8") as file:
+    with open("prefix_list.txt", "r", encoding="utf-8") as file:
         prefix_list = file.read().splitlines()
 
-    # load infix map
-    infix_map = load_json_file("list_prep\infix_map0.json")
-
     # load prefix list
-    with open("girma_suffix_list.txt", "r", encoding="utf-8") as file:
+    with open("suffix_list.txt", "r", encoding="utf-8") as file:
         suffix_list = file.read().splitlines()
 
-    # load corpus
-    # with open("processed_tig_corpus.txt", "r", encoding="utf-8") as file:
-    #     corpus = file.read()
-
-    return prefix_list, infix_map, suffix_list
+    return prefix_list, suffix_list
 
 
 def main():
-    prefix_list, infix_map, suffix_list = load_files()
+    prefix_suffix_pairs = [("መ", "ቲ"), ("መ", "ያ"), ("መ", "ኢ"), ("መ", "ታ"), ("መ", "ት")]
 
-    stemmer = TigrinyaStemmer(prefix_list, infix_map, suffix_list)
+    prefix_list, suffix_list = load_lists()
+
+    stemmer = TigrinyaStemmer(prefix_suffix_pairs, prefix_list, suffix_list)
     preprocessor = TigMorphPreprocess()
 
-    word_list = ["ማእከላት", "ከተማታት", "ሰባቢሩ", "ተጻወቲ", "ዘይብሎም", "አይትግበር"]
-    # word_list = ["አይትምጻእ", "አይተንብብ", "አይንግበር", "አይነበርኩን", "ብምግባርካ"]
-    for word in word_list:
-        preprocessed_word = preprocessor.normalize(word)
-        if preprocessed_word == "":
-            print(
-                f"The word you provided ({word}) was removed during the preprocessing stage!"
-            )
-        else:
-            stemmed_word = stemmer.stem(preprocessed_word)
-            print(f"{word} --> {stemmed_word}")
+    # ps_words = ["መቅበሪ", "መንግስቲ", "መወርወሪ", "መድሓኒት", "መጀመርታ"]
+    # dlp_words = ["ገልጠምጠም"]
+    # p_words = ["ንሰላም"]
+    # s_words = ["ማዕከላት"]
+    # dlp_words2 = ["ሰባቢሩ", "ቆራሪጹ"]
+    # for word in dlp_words2:
+    #     preprocessed_word0 = preprocessor.normalize(word)
+    #     preprocessed_word1 = preprocessor.remove_stopwords(preprocessed_word0)
+    #     if preprocessed_word1 == "":
+    #         print(
+    #             f"The word you provided ({word}) was removed during the preprocessing stage!"
+    #         )
+    #     else:
+    #         stemmed_word = stemmer.stem(preprocessed_word)
+    #         print(f"{word} --> {stemmed_word}")
 
-    # word = "አይተንብብ"
-    # preprocessed_word = preprocessor.normalize(word)
-    # if preprocessed_word == "":
-    #     print(
-    #         f"The word you provided ({word}) was removed during the preprocessing stage!"
-    #     )
-    # else:
-    #     stemmed_word = stemmer.stem(preprocessed_word)
-    #     print(f"{word} --> {stemmed_word}")
+    word = "ቆራሪጹ"
+    preprocessed_word0 = preprocessor.normalize(word)
+    preprocessed_word1 = preprocessor.remove_stopwords(preprocessed_word0)
+    if preprocessed_word1 == "":
+        print(
+            f"The word you provided ({word}) was removed during the preprocessing stage!"
+        )
+    else:
+        stemmed_word = stemmer.stem(preprocessed_word)
+        print(f"{word} --> {stemmed_word}")
 
 
 if __name__ == "__main__":
     main()
+    # print("Hello"[2:5])

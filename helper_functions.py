@@ -2,62 +2,7 @@ import re
 import json
 
 
-def filter_text(word: str) -> str:
-    # remove punctuation marks (english & ethiopic)
-    english_punctuation = "".join(
-        [
-            "\u002E",  # Period.
-            "\u002C",  # Comma.
-            "\u0021",  # Exclamation Mark.
-            "\u003F",  # Question Mark.
-            "\u003A",  # Colon.
-            "\u003B",  # Semicolon.
-            "\u0027",  # Apostrophe.
-            "\u0022",  # Double Quotation Mark.
-            "\u201C",  # Left Double Quotation Mark.
-            "\u201D",  # Right Double Quotation Mark.
-            "\u2018",  # Left Single Quotation Mark.
-            "\u2019",  # Right Single Quotation Mark.
-            "\u2010",  # Hyphen.
-            "\u2013",  # En Dash.
-            "\u2014",  # Em Dash.
-            "\u0028",  # Left Parenthesis.
-            "\u0029",  # Right Parenthesis.
-            "\u005B",  # Left Square Bracket.
-            "\u005D",  # Right Square Bracket.
-            "\u007B",  # Left Curly Bracket.
-            "\u007D",  # Right Curly Bracket.
-            "\u2026",  # Ellipsis.
-            "\u002F",  # Slash
-            "\u005C",  # Backslash
-            "\u0026",  # Ampersand
-            "\u002A",  # Asterisk
-        ]
-    )
-    # pattern for english punctuation marks
-    eng_pattern = f"[{re.escape(english_punctuation)}]"
-    filtered_text0 = re.sub(eng_pattern, "", word)
-
-    # pattern for ethiopic punctuation marks
-    eth_pattern = r"[\u1361-\u1368]+"
-    filtered_text1 = re.sub(eth_pattern, "", filtered_text0)
-
-    # replace newlines with spaces
-    filtered_text2 = filtered_text1.replace("\n", " ")
-
-    # remove any item containing non-Ethiopic letters
-    ethiopic_letters = load_json_file("SERA_transliteration.json")
-
-    filtered_list = []
-    for word in filtered_text2.split():
-        if all(char in ethiopic_letters.keys() for char in word):
-            filtered_list.append(word)
-
-    # join using newline char and return
-    return "\n".join(filtered_list)
-
-
-def load_txt_file(filepath, separator=" "):
+def load_txt_file(filepath):
     with open(filepath, "r", encoding="utf-8") as file:
         return file.read().splitlines()
 
@@ -77,20 +22,17 @@ def transliterate(word: str) -> str:
     """
     Transliteration of word written in Ethiopic script using Latin alphabet.
     """
-    transliteration = ""
-    for letter in word:
-        if 4608 <= ord(letter) <= 4954:
-            transliteration += transliteration_table[letter]
-        else:
-            transliteration += letter
-
-    return transliteration
-
+    if not all(char in transliteration_table.keys() for char in word):
+        return
+    return "".join([transliteration_table[letter] for letter in word])
 
 def transcribe(word: str) -> str:
     """
     Converts transliterated word back to its original form.
     """
+    if not (all(char in transcription_table.keys() for char in word) or "`" in word):
+        return
+
     transcription = ""
     unit = ""
     i = 0
@@ -101,11 +43,14 @@ def transcribe(word: str) -> str:
             transcription += transcription_table[unit]
             unit = ""
         # if it's a consonant
-        elif unit[-1] not in {"'", "W"}:
+        elif unit[-1] not in {"`", "W"}:
             # if it's the last letter in the word or the next letter is a consonant or a single quote
             if i == len(word) - 1 or word[i + 1] not in set(vowels).union({"W"}):
-                transcription += transcription_table[unit]
-                unit = ""
+                try:
+                    transcription += transcription_table[unit]
+                    unit = ""
+                except:
+                    print(f"Unit: {unit}")
         i += 1
 
     return transcription
@@ -131,7 +76,7 @@ def main():
 
     # transcribe("he")
     # transcribe("He")
-    # transcribe("'se")
+    # transcribe("`se")
     # transcribe("i")
     # transcribe("lWa")
     # transcribe("hWi")
@@ -145,9 +90,9 @@ def main():
     # transcribe(transliterate("ጭማሪ"))
     # transcribe(transliterate("ከፍተኛ"))
 
-    print(transcribe(transliterate("ጓደኛ")))
-    pass
+    print(transcribe("nKulu"))
 
 
 if __name__ == "__main__":
     main()
+

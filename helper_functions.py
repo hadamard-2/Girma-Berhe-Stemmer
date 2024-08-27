@@ -30,7 +30,10 @@ def transcribe(word: str) -> str:
     """
     Converts transliterated word back to its original form.
     """
-    if not (all(char in transcription_table.keys() for char in word) or "`" in word):
+    processed_word = word
+    for item in sorted(list(transcription_table.keys()), key=lambda item: -len(item)):
+        processed_word = processed_word.replace(item, "")
+    if processed_word != "":
         return
 
     transcription = ""

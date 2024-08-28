@@ -21,7 +21,7 @@ class TigMorphPreprocess:
 
         self.corpus = list(map(remove_contraction, split_corpus))
 
-    def remove_punctuation(self):
+    def filter_text(self):
         english_punctuation = "".join(
             [
                 "\u002E",  # Period.
@@ -76,7 +76,7 @@ class TigMorphPreprocess:
         Removes words containing non-alphabet characters from corpus.
         """
         self.handle_contraction()
-        self.remove_punctuation()
+        self.filter_text()
 
     def normalize_helper(self, list1: list, list2: list):
         for i in range(len(list1)):
@@ -113,12 +113,17 @@ class TigMorphPreprocess:
 
     def remove_stopwords(self):
         """
-        Removes a predefined stopwords from the corpus.
+        Removes 
+        - a predefined stopwords from the corpus
+        - tokens with length < 3 
+            (# NOTE - I don't feel like such words add much meaning if any.)
         """
         stopwords = load_txt_file("stopword_list.txt")
 
         for stopword in stopwords:
             self.corpus = self.corpus.replace(stopword, "")
+        
+        return [token for token in self.corpus.split() if len(token) >= 3]
 
 
 # def main():
